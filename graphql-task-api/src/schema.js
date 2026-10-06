@@ -2,40 +2,38 @@ const {
   GraphQLObjectType,
   GraphQLSchema,
   GraphQLString,
-  GraphQLBoolean,
-  GraphQLID,
+  GraphQLInt,
   GraphQLList,
   GraphQLNonNull,
 } = require('graphql');
 
-// In-memory data store
-let tasks = [
-  { id: '1', title: 'Learn GraphQL', description: 'Study queries and mutations', completed: false },
-  { id: '2', title: 'Deploy with Ansible', description: 'Write Deploy.yml playbook', completed: false },
+// In-memory data store (same two sample tasks as the lab manual output)
+let msglist = [
+  { id: 1, jobtodo: 'assignment', toggle: 0 },
+  { id: 2, jobtodo: 'record', toggle: 0 },
 ];
 let nextId = 3;
 
-const TaskType = new GraphQLObjectType({
-  name: 'Task',
+const MsgType = new GraphQLObjectType({
+  name: 'Msg',
   fields: {
-    id: { type: GraphQLID },
-    title: { type: GraphQLString },
-    description: { type: GraphQLString },
-    completed: { type: GraphQLBoolean },
+    id: { type: GraphQLInt },
+    jobtodo: { type: GraphQLString },
+    toggle: { type: GraphQLInt },
   },
 });
 
 const RootQuery = new GraphQLObjectType({
   name: 'Query',
   fields: {
-    tasks: {
-      type: new GraphQLList(TaskType),
-      resolve: () => tasks,
+    msglist: {
+      type: new GraphQLList(MsgType),
+      resolve: () => msglist,
     },
-    task: {
-      type: TaskType,
-      args: { id: { type: new GraphQLNonNull(GraphQLID) } },
-      resolve: (_, { id }) => tasks.find((t) => t.id === id) || null,
+    msg: {
+      type: MsgType,
+      args: { id: { type: new GraphQLNonNull(GraphQLInt) } },
+      resolve: (_, { id }) => msglist.find((m) => m.id === id) || null,
     },
   },
 });
@@ -44,41 +42,36 @@ const Mutation = new GraphQLObjectType({
   name: 'Mutation',
   fields: {
     addTask: {
-      type: TaskType,
-      args: {
-        title: { type: new GraphQLNonNull(GraphQLString) },
-        description: { type: GraphQLString },
-      },
-      resolve: (_, { title, description }) => {
-        const task = { id: String(nextId++), title, description: description || '', completed: false };
-        tasks.push(task);
+      type: MsgType,
+      args: { jobtodo: { type: new GraphQLNonNull(GraphQLString) } },
+      resolve: (_, { jobtodo }) => {
+        const task = { id: nextId++, jobtodo, toggle: 0 };
+        msglist.push(task);
         return task;
       },
     },
     updateTask: {
-      type: TaskType,
+      type: MsgType,
       args: {
-        id: { type: new GraphQLNonNull(GraphQLID) },
-        title: { type: GraphQLString },
-        description: { type: GraphQLString },
-        completed: { type: GraphQLBoolean },
+        id: { type: new GraphQLNonNull(GraphQLInt) },
+        jobtodo: { type: GraphQLString },
+        toggle: { type: GraphQLInt },
       },
-      resolve: (_, { id, ...changes }) => {
-        const task = tasks.find((t) => t.id === id);
+      resolve: (_, { id, jobtodo, toggle }) => {
+        const task = msglist.find((m) => m.id === id);
         if (!task) throw new Error('Task not found');
-        Object.keys(changes).forEach((k) => {
-          if (changes[k] !== undefined && changes[k] !== null) task[k] = changes[k];
-        });
+        if (jobtodo !== undefined && jobtodo !== null) task.jobtodo = jobtodo;
+        if (toggle !== undefined && toggle !== null) task.toggle = toggle;
         return task;
       },
     },
     deleteTask: {
-      type: TaskType,
-      args: { id: { type: new GraphQLNonNull(GraphQLID) } },
+      type: MsgType,
+      args: { id: { type: new GraphQLNonNull(GraphQLInt) } },
       resolve: (_, { id }) => {
-        const index = tasks.findIndex((t) => t.id === id);
+        const index = msglist.findIndex((m) => m.id === id);
         if (index === -1) throw new Error('Task not found');
-        return tasks.splice(index, 1)[0];
+        return msglist.splice(index, 1)[0];
       },
     },
   },
