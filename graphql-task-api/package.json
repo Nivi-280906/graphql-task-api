@@ -1,0 +1,14 @@
+{
+  "name": "graphql-task-api",
+  "version": "1.0.0",
+  "description": "GraphQL Task Management CRUD API (Node.js + Express.js)",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "express-graphql": "^0.12.0",
+    "graphql": "^15.8.0"
+  }
+}
