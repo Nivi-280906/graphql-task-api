@@ -1,21 +1,39 @@
+# Ex.5 - Ansible-Deployed GraphQL API for Task Management with Node.js
+# Run:  ansible-playbook Deploy.yml --syntax-check
+#       ansible-playbook Deploy.yml
+# Needs (Ubuntu/Debian): ansible, git, nodejs, npm  (see README, section 1)
 - hosts: localhost
   connection: local
   become: yes
+  vars:
+    repo_dest: /var/www/task-manager-api
+    # The GitHub repo keeps the Node project inside the graphql-task-api/ folder,
+    # so src/app.js lives at <repo_dest>/graphql-task-api/src/app.js
+    app_dir: /var/www/task-manager-api/graphql-task-api
+
   tasks:
     - name: Update APT package manager
       apt:
         update_cache: yes
         cache_valid_time: 3600
 
+    # Optional - enable if Node.js / MongoDB are not already installed (as in the lab manual)
+    # - name: Install Node.js and npm
+    #   apt:
+    #     name: [nodejs, npm]
+    #     state: present
+    # - name: Install MongoDB      # not needed here: the API uses an in-memory store
+    #   ...
+
     - name: Clone the repository
       git:
         repo: 'https://github.com/Nivi-280906/graphql-task-api.git'
-        dest: /var/www/task-manager-api
+        dest: "{{ repo_dest }}"
         version: main
 
     - name: Install project dependencies
       npm:
-        path: /var/www/task-manager-api/graphql-task-api
+        path: "{{ app_dir }}"
         state: present
 
     - name: Install PM2 globally
@@ -26,7 +44,10 @@
     - name: Start the application with PM2
       command: pm2 start src/app.js --name task-manager
       args:
-        chdir: /var/www/task-manager-api/graphql-task-api
+        chdir: "{{ app_dir }}"
+      register: pm2_start
+      changed_when: "'already launched' not in pm2_start.stderr and 'already launched' not in pm2_start.stdout"
+      failed_when: pm2_start.rc != 0 and 'already launched' not in pm2_start.stderr and 'already launched' not in pm2_start.stdout
 
     - name: Save PM2 process list
       command: pm2 save
